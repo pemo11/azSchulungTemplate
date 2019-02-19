@@ -1,0 +1,267 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+            "vmName": {
+                "defaultValue": "hallolinux",
+                "type": "String"
+            },
+            "vmSize": {
+                "defaultValue": "Basic_A1",
+                "type": "String"
+            },
+            "vmAdminuser": {
+                "defaultValue": "poshadmin",
+                "type": "String"
+            },
+            "vmAdminpassword": {
+                "defaultValue": "Demo12345678",
+                "type": "String"
+            },
+            "vmVnetname": {
+                "defaultValue": "hallolinux-vnet",
+                "type": "String"
+            },
+            "vmNicname": {
+                "defaultValue": "hallolinux-nic",
+                "type": "String"
+            },
+            "vmPublicIPAddressname": {
+                "defaultValue": "hallolinux-ip",
+                "type": "String"
+            },
+            "vmSubnetname": {
+                "defaultValue": "default",
+                "type": "String"
+            },
+            "vmNSGname": {
+                "defaultValue": "hallolinux-nsg",
+                "type": "String"
+            },
+        },
+    "variables": {
+        "osDisksize": 30,
+        "osType" : "Linux",
+        "osPublisher" : "Canonical",
+        "osOffer" : "UbuntuServer",
+        "osSku" : "18.04-LTS",
+        "storageType": "Standard_LRS",
+        "macAddress" : "00-0D-3A-28-A3-1A"
+    },
+    "resources": [
+        {
+            "type": "Microsoft.Compute/virtualMachines",
+            "name": "[parameters('vmName')]",
+            "apiVersion": "2018-06-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "Typ": "PoshKurs",
+                "Autor": "Pemo"
+            },
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('vmSize')]"
+                },
+                "storageProfile": {
+                    "imageReference": {
+                        "publisher": "[variables('osPublisher')]",
+                        "offer": "[variables('osOffer')]",
+                        "sku": "[variables('osSku')]",
+                        "version": "latest"
+                    },
+                    "osDisk": {
+                        "osType": "[variables('osType')]",
+                        "name": "[concat(parameters('vmName'), '_OsDisk_78bb33665aab478c956312ed3a61a804')]",
+                        "createOption": "FromImage",
+                        "caching": "ReadWrite",
+                        "managedDisk": {
+                            "storageAccountType": "[variables('storageType')]"
+                        },
+                        "diskSizeGB": "[variables('osDisksize')]"
+                    },
+                    "dataDisks": []
+                },
+                "osProfile": {
+                    "computerName": "[parameters('vmName')]",
+                    "adminUsername": "[parameters('vmAdminuser')]",
+                    "adminPassword": "[parameters('vmAdminpassword')]",
+                    "linuxConfiguration": {
+                        "disablePasswordAuthentication": false,
+                        "provisionVMAgent": true
+                    }
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', parameters('vmNicname'))]"
+                        }
+                    ]
+                }
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkInterfaces', parameters('vmNicname'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkInterfaces",
+            "name": "[parameters('vmNicname')]",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "Typ": "PoshKurs",
+                "Autor": "Pemo"
+            },
+            "properties": {
+                "resourceGuid": "b45398ca-3409-432f-a619-eba3f7c37c53",
+                "ipConfigurations": [
+                    {
+                        "properties": {
+                            "publicIPAddress": {
+                                "id": "[resourceId('Microsoft.Network/publicIPAddresses', parameters('vmPublicIPAddressname'))]"
+                            },
+                            "subnet": {
+                                "id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vmVnetname'), parameters('vmSubnetname'))]"
+                            },
+                            "primary": true,
+                        }
+                    }
+                ],
+                "dnsSettings": {
+                    "dnsServers": [],
+                    "appliedDnsServers": [],
+                    "internalDomainNameSuffix": "2mcuj3brn3qephkuyxwykhugsh.ax.internal.cloudapp.net"
+                },
+                "macAddress": "[variables('macAddress')]",
+                "networkSecurityGroup": {
+                    "id": "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('vmNSGname'))]"
+                },
+                "primary": true
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/publicIPAddresses', parameters('vmPublicIPAddressname'))]",
+                "[resourceId('Microsoft.Network/virtualNetworks/subnets', parameters('vmVnetname'), parameters('vmSubnetname'))]",
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('vmNSGname'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups",
+            "name": "[parameters('vmNSGname')]",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "Typ": "PoshKurs",
+                "Autor": "Pemo"
+            },
+            "properties": {
+                "resourceGuid": "7d3a9875-7f66-43ee-8add-d85482b93041",
+                "securityRules": [
+                    {
+                        "name": "SSHRule",
+                        "etag": "W/\"e7e8bb54-92ee-40fc-af5b-3382c88f130a\"",
+                        "properties": {
+                            "protocol": "TCP",
+                            "sourcePortRange": "*",
+                            "destinationPortRange": "22",
+                            "sourceAddressPrefix": "*",
+                            "destinationAddressPrefix": "*",
+                            "access": "Allow",
+                            "priority": 300,
+                            "direction": "Inbound",
+                            "sourcePortRanges": [],
+                            "destinationPortRanges": [],
+                            "sourceAddressPrefixes": [],
+                            "destinationAddressPrefixes": []
+                        }
+                    }
+                ]
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/publicIPAddresses",
+            "sku": {
+                "name": "Basic",
+                "tier": "Regional"
+            },
+            "name": "[parameters('vmPublicIPAddressname')]",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "Typ": "PoshKurs",
+                "Autor": "Pemo"
+            },
+            "properties": {
+                "resourceGuid": "56fbe1f4-9fae-4422-a800-377476bec567",
+                "ipAddress": "104.45.10.127",
+                "publicIPAddressVersion": "IPv4",
+                "publicIPAllocationMethod": "Dynamic",
+                "idleTimeoutInMinutes": 4
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks",
+            "name": "[parameters('vmVnetname')]",
+            "apiVersion": "2018-10-01",
+            "location": "[resourceGroup().location]",
+            "tags": {
+                "Typ": "PoshKurs",
+                "Autor": "Pemo"
+            },
+            "properties": {
+                "resourceGuid": "f44405e3-6f31-4760-9d54-c5ed851e8697",
+                "addressSpace": {
+                    "addressPrefixes": [
+                        "10.0.0.0/24"
+                    ]
+                },
+                "subnets": [
+                    {
+                        "name": "[parameters('vmSubnetname')]",
+                        "etag": "W/\"1b02087f-934b-43de-97a2-6178b52d794a\"",
+                        "properties": {
+                            "addressPrefix": "10.0.0.0/24",
+                            "delegations": []
+                        }
+                    }
+                ],
+                "virtualNetworkPeerings": []
+            },
+            "dependsOn": []
+        },
+        {
+            "type": "Microsoft.Network/networkSecurityGroups/securityRules",
+            "name": "[concat(parameters('vmNSGname'), '/', 'SSHRule')]",
+            "apiVersion": "2018-10-01",
+            "properties": {
+                "protocol": "TCP",
+                "sourcePortRange": "*",
+                "destinationPortRange": "22",
+                "sourceAddressPrefix": "*",
+                "destinationAddressPrefix": "*",
+                "access": "Allow",
+                "priority": 300,
+                "direction": "Inbound",
+                "sourcePortRanges": [],
+                "destinationPortRanges": [],
+                "sourceAddressPrefixes": [],
+                "destinationAddressPrefixes": []
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/networkSecurityGroups', parameters('vmNSGname'))]"
+            ]
+        },
+        {
+            "type": "Microsoft.Network/virtualNetworks/subnets",
+            "name": "[concat(parameters('vmVnetname'), '/', parameters('vmSubnetname'))]",
+            "apiVersion": "2018-10-01",
+            "properties": {
+                "addressPrefix": "10.0.0.0/24",
+                "delegations": []
+            },
+            "dependsOn": [
+                "[resourceId('Microsoft.Network/virtualNetworks', parameters('vmVnetname'))]"
+            ]
+        }
+    ]
+}
